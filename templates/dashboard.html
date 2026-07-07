@@ -1,1737 +1,531 @@
 {% extends "base.html" %}
 
-
 {% block content %}
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4>Dashboard</h4>
+        <p class="text-muted mb-0">
+            {{ current_user.name }} / {{ current_user.role }}
+        </p>
+    </div>
 
-<div
-    class="d-flex
-           justify-content-between
-           align-items-center
-           mb-3"
->
-
-
-<div>
-
-<h4>
-
-Dashboard
-
-</h4>
-
-
-<p class="text-muted mb-0">
-
-{{ current_user.name }}
-
-/
-
-{{ current_user.role }}
-
-</p>
-
+    <form method="GET">
+        <input
+            type="number"
+            name="year"
+            value="{{ year }}"
+            class="form-control"
+            style="width:110px;"
+            onchange="this.form.submit()"
+        >
+    </form>
 </div>
-
-
-<form method="GET">
-
-<input
-    type="number"
-    name="year"
-    value="{{ year }}"
-    class="form-control"
-    style="width:110px;"
-    onchange="this.form.submit()"
->
-
-</form>
-
-
-</div>
-
-
-
-<!-- DASHBOARD CARDS -->
-
 
 <div class="row g-2 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm dashboard-card">
+            <div class="card-body">
+                <small>Cash in Hand</small>
+                <h5>¥{{ cash_in_hand | money }}</h5>
+            </div>
+        </div>
+    </div>
 
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm dashboard-card">
+            <div class="card-body">
+                <small>Total Collections</small>
+                <h5>¥{{ total_collections | money }}</h5>
+            </div>
+        </div>
+    </div>
 
-<div class="col-6 col-md-3">
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm dashboard-card">
+            <div class="card-body">
+                <small>Unpaid Collections</small>
+                <h5>¥{{ unpaid_collections | money }}</h5>
+            </div>
+        </div>
+    </div>
 
-<div class="card shadow-sm dashboard-card">
-
-<div class="card-body">
-
-<small>
-
-Cash in Hand
-
-</small>
-
-<h5>
-
-¥{{ cash_in_hand | money }}
-
-</h5>
-
+    <div class="col-6 col-md-3">
+        <div class="card shadow-sm dashboard-card">
+            <div class="card-body">
+                <small>Outstanding Loans</small>
+                <h5>¥{{ outstanding_loans | money }}</h5>
+            </div>
+        </div>
+    </div>
 </div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-6 col-md-3">
-
-<div class="card shadow-sm dashboard-card">
-
-<div class="card-body">
-
-<small>
-
-Total Collections
-
-</small>
-
-<h5>
-
-¥{{ total_collections | money }}
-
-</h5>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-6 col-md-3">
-
-<div class="card shadow-sm dashboard-card">
-
-<div class="card-body">
-
-<small>
-
-Unpaid Collections
-
-</small>
-
-<h5>
-
-¥{{ unpaid_collections | money }}
-
-</h5>
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="col-6 col-md-3">
-
-<div class="card shadow-sm dashboard-card">
-
-<div class="card-body">
-
-<small>
-
-Outstanding Loans
-
-</small>
-
-<h5>
-
-¥{{ outstanding_loans | money }}
-
-</h5>
-
-</div>
-
-</div>
-
-</div>
-
-
-</div>
-
-
 
 {% if current_user.role == "admin" %}
-
-
-
-<!-- ADMIN FORMS -->
-
 
 <div class="accordion mb-4">
-
-
-<div class="accordion-item">
-
-
-<h2 class="accordion-header">
-
-
-<button
-
-class="accordion-button collapsed"
-
-data-bs-toggle="collapse"
-
-data-bs-target="#adminForms"
-
->
-
-
-Admin Registration Forms
-
-
-</button>
-
-
-</h2>
-
-
-
-<div
-
-id="adminForms"
-
-class="accordion-collapse collapse"
-
->
-
-
-<div class="accordion-body">
-
-
-
-<!-- ADD USER -->
-
-
-<h5>
-
-Add User
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_user') }}"
-
-class="mb-4"
-
->
-
-
-<input
-
-name="name"
-
-class="form-control mb-2"
-
-placeholder="Name"
-
-required
-
->
-
-
-<input
-
-name="email"
-
-type="email"
-
-class="form-control mb-2"
-
-placeholder="Email"
-
-required
-
->
-
-
-<input
-
-name="password"
-
-type="password"
-
-class="form-control mb-2"
-
-placeholder="Password"
-
-required
-
->
-
-
-<select
-
-name="role"
-
-class="form-select mb-2"
-
->
-
-
-<option value="user">
-
-General User
-
-</option>
-
-
-<option value="admin">
-
-Admin
-
-</option>
-
-
-</select>
-
-
-<button
-
-class="btn btn-primary w-100"
-
->
-
-
-Add User
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- COLLECTION PLAN -->
-
-
-<h5>
-
-Monthly Collection Plan
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_collection_plan') }}"
-
-class="mb-4"
-
->
-
-
-<select
-
-name="user_id"
-
-class="form-select mb-2"
-
->
-
-
-{% for user in all_users %}
-
-
-{% if user.is_active_user %}
-
-
-<option value="{{ user.id }}">
-
-
-{{ user.name }}
-
-
-</option>
-
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button
+                class="accordion-button collapsed"
+                data-bs-toggle="collapse"
+                data-bs-target="#adminForms"
+            >
+                Admin Registration Forms
+            </button>
+        </h2>
+
+        <div
+            id="adminForms"
+            class="accordion-collapse collapse"
+        >
+            <div class="accordion-body">
+
+                <h5>Add User</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_user') }}"
+                    class="mb-4"
+                >
+                    <input
+                        name="name"
+                        class="form-control mb-2"
+                        placeholder="Name"
+                        required
+                    >
+
+                    <input
+                        name="email"
+                        type="email"
+                        class="form-control mb-2"
+                        placeholder="Email"
+                        required
+                    >
+
+                    <input
+                        name="password"
+                        type="password"
+                        class="form-control mb-2"
+                        placeholder="Password"
+                        required
+                    >
+
+                    <select
+                        name="role"
+                        class="form-select mb-2"
+                    >
+                        <option value="user">General User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+
+                    <button class="btn btn-primary w-100">
+                        Add User
+                    </button>
+                </form>
+
+                <h5>Monthly Collection Plan</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_collection_plan') }}"
+                    class="mb-4"
+                >
+                    <select
+                        name="user_id"
+                        class="form-select mb-2"
+                    >
+                        {% for user in all_users %}
+                            {% if user.is_active_user %}
+                            <option value="{{ user.id }}">
+                                {{ user.name }}
+                            </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+
+                    <input
+                        name="year"
+                        type="number"
+                        value="{{ year }}"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="month"
+                        type="number"
+                        min="1"
+                        max="12"
+                        class="form-control mb-2"
+                        placeholder="Month"
+                        required
+                    >
+
+                    <input
+                        name="expected_amount"
+                        type="number"
+                        min="0"
+                        class="form-control mb-2"
+                        placeholder="Expected Amount"
+                        required
+                    >
+
+                    <button class="btn btn-success w-100">
+                        Add Collection Plan
+                    </button>
+                </form>
+
+                <h5>Collection Payment</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_collection_payment') }}"
+                    class="mb-4"
+                >
+                    <select
+                        name="plan_id"
+                        class="form-select mb-2"
+                    >
+                        {% for plan in plans %}
+                        <option value="{{ plan.id }}">
+                            {{ plan.user.name }} - {{ plan.year }}/{{ plan.month }}
+                            - ¥{{ plan.expected_amount | money }}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <input
+                        name="paid_amount"
+                        type="number"
+                        min="1"
+                        class="form-control mb-2"
+                        placeholder="Paid Amount"
+                        required
+                    >
+
+                    <input
+                        name="paid_date"
+                        type="date"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="note"
+                        class="form-control mb-2"
+                        placeholder="Note"
+                    >
+
+                    <button class="btn btn-success w-100">
+                        Register Payment
+                    </button>
+                </form>
+
+                <h5>Add Loan</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_loan') }}"
+                    class="mb-4"
+                >
+                    <select
+                        name="borrower_id"
+                        class="form-select mb-2"
+                    >
+                        {% for user in all_users %}
+                            {% if user.is_active_user %}
+                            <option value="{{ user.id }}">
+                                {{ user.name }}
+                            </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+
+                    <input
+                        name="loan_date"
+                        type="date"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="amount"
+                        type="number"
+                        min="1"
+                        class="form-control mb-2"
+                        placeholder="Loan Amount"
+                        required
+                    >
+
+                    <input
+                        name="note"
+                        class="form-control mb-2"
+                        placeholder="Note"
+                    >
+
+                    <button class="btn btn-warning w-100">
+                        Add Loan
+                    </button>
+                </form>
+
+                <h5>Loan Repayment</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_loan_repayment') }}"
+                    class="mb-4"
+                >
+                    <select
+                        name="loan_id"
+                        class="form-select mb-2"
+                    >
+                        {% for loan in loans %}
+                            {% if loan.amount - loan_repaid(loan) > 0 %}
+                            <option value="{{ loan.id }}">
+                                {{ loan.borrower.name }}
+                                - Remaining ¥{{ (loan.amount - loan_repaid(loan)) | money }}
+                            </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+
+                    <input
+                        name="repayment_date"
+                        type="date"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="amount"
+                        type="number"
+                        min="1"
+                        class="form-control mb-2"
+                        placeholder="Repayment Amount"
+                        required
+                    >
+
+                    <input
+                        name="note"
+                        class="form-control mb-2"
+                        placeholder="Note"
+                    >
+
+                    <button class="btn btn-warning w-100">
+                        Register Repayment
+                    </button>
+                </form>
+
+                <h5>Expense</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_expense') }}"
+                    class="mb-4"
+                >
+                    <input
+                        name="expense_date"
+                        type="date"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="amount"
+                        type="number"
+                        min="1"
+                        class="form-control mb-2"
+                        placeholder="Expense Amount"
+                        required
+                    >
+
+                    <input
+                        name="note"
+                        class="form-control mb-2"
+                        placeholder="Note"
+                    >
+
+                    <button class="btn btn-danger w-100">
+                        Add Expense
+                    </button>
+                </form>
+
+                <h5>Other Income</h5>
+                <form
+                    method="POST"
+                    action="{{ url_for('add_income') }}"
+                >
+                    <input
+                        name="income_date"
+                        type="date"
+                        class="form-control mb-2"
+                        required
+                    >
+
+                    <input
+                        name="amount"
+                        type="number"
+                        min="1"
+                        class="form-control mb-2"
+                        placeholder="Income Amount"
+                        required
+                    >
+
+                    <input
+                        name="note"
+                        class="form-control mb-2"
+                        placeholder="Note"
+                    >
+
+                    <button class="btn btn-secondary w-100">
+                        Add Other Income
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endif %}
 
-
-{% endfor %}
-
-
-</select>
-
-
-
-<input
-
-name="year"
-
-type="number"
-
-value="{{ year }}"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="month"
-
-type="number"
-
-min="1"
-
-max="12"
-
-class="form-control mb-2"
-
-placeholder="Month"
-
-required
-
->
-
-
-<input
-
-name="expected_amount"
-
-type="number"
-
-min="0"
-
-class="form-control mb-2"
-
-placeholder="Expected Amount"
-
-required
-
->
-
-
-<button
-
-class="btn btn-success w-100"
-
->
-
-
-Add Collection Plan
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- COLLECTION PAYMENT -->
-
-
-<h5>
-
-Collection Payment
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_collection_payment') }}"
-
-class="mb-4"
-
->
-
-
-<select
-
-name="plan_id"
-
-class="form-select mb-2"
-
->
-
-
-{% for plan in plans %}
-
-
-<option value="{{ plan.id }}">
-
-
-{{ plan.user.name }}
-
--
-
-{{ plan.year }}/{{ plan.month }}
-
--
-
-¥{{ plan.expected_amount | money }}
-
-
-</option>
-
-
-{% endfor %}
-
-
-</select>
-
-
-<input
-
-name="paid_amount"
-
-type="number"
-
-min="1"
-
-class="form-control mb-2"
-
-placeholder="Paid Amount"
-
-required
-
->
-
-
-<input
-
-name="paid_date"
-
-type="date"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="note"
-
-class="form-control mb-2"
-
-placeholder="Note"
-
->
-
-
-<button
-
-class="btn btn-success w-100"
-
->
-
-
-Register Payment
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- LOAN -->
-
-
-<h5>
-
-Add Loan
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_loan') }}"
-
-class="mb-4"
-
->
-
-
-<select
-
-name="borrower_id"
-
-class="form-select mb-2"
-
->
-
-
-{% for user in all_users %}
-
-
-{% if user.is_active_user %}
-
-
-<option value="{{ user.id }}">
-
-
-{{ user.name }}
-
-
-</option>
-
-
-{% endif %}
-
-
-{% endfor %}
-
-
-</select>
-
-
-<input
-
-name="loan_date"
-
-type="date"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="amount"
-
-type="number"
-
-min="1"
-
-class="form-control mb-2"
-
-placeholder="Loan Amount"
-
-required
-
->
-
-
-<input
-
-name="note"
-
-class="form-control mb-2"
-
-placeholder="Note"
-
->
-
-
-<button
-
-class="btn btn-warning w-100"
-
->
-
-
-Add Loan
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- LOAN REPAYMENT -->
-
-
-<h5>
-
-Loan Repayment
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_loan_repayment') }}"
-
-class="mb-4"
-
->
-
-
-<select
-
-name="loan_id"
-
-class="form-select mb-2"
-
->
-
-
-{% for loan in loans %}
-
-
-{% if loan.amount - loan_repaid(loan) > 0 %}
-
-
-<option value="{{ loan.id }}">
-
-
-{{ loan.borrower.name }}
-
--
-
-Remaining
-
-¥{{ (loan.amount - loan_repaid(loan)) | money }}
-
-
-</option>
-
-
-{% endif %}
-
-
-{% endfor %}
-
-
-</select>
-
-
-<input
-
-name="repayment_date"
-
-type="date"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="amount"
-
-type="number"
-
-min="1"
-
-class="form-control mb-2"
-
-placeholder="Repayment Amount"
-
-required
-
->
-
-
-<input
-
-name="note"
-
-class="form-control mb-2"
-
-placeholder="Note"
-
->
-
-
-<button
-
-class="btn btn-warning w-100"
-
->
-
-
-Register Repayment
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- INSTALLMENT -->
-
-
-<h5>
-
-Installment Balance
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_installment') }}"
-
-class="mb-4"
-
->
-
-
-<select
-
-name="user_id"
-
-class="form-select mb-2"
-
->
-
-
-{% for user in all_users %}
-
-
-{% if user.is_active_user %}
-
-
-<option value="{{ user.id }}">
-
-
-{{ user.name }}
-
-
-</option>
-
-
-{% endif %}
-
-
-{% endfor %}
-
-
-</select>
-
-
-<input
-
-name="year"
-
-type="number"
-
-value="{{ year }}"
-
-class="form-control mb-2"
-
->
-
-
-<input
-
-name="opening_balance"
-
-type="number"
-
-class="form-control mb-2"
-
-placeholder="Opening Balance"
-
->
-
-
-<div class="row g-2">
-
-
-{% for month in [
-
-"jan",
-
-"feb",
-
-"mar",
-
-"apr",
-
-"may",
-
-"jun",
-
-"jul",
-
-"aug",
-
-"sep",
-
-"oct",
-
-"nov",
-
-"dec"
-
-] %}
-
-
-<div class="col-4">
-
-
-<input
-
-name="{{ month }}"
-
-type="number"
-
-class="form-control"
-
-placeholder="{{ month }}"
-
->
-
-
-</div>
-
-
-{% endfor %}
-
-
-</div>
-
-
-<button
-
-class="btn btn-info w-100 mt-3"
-
->
-
-
-Save Installment
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- EXPENSE -->
-
-
-<h5>
-
-Expense
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_expense') }}"
-
-class="mb-4"
-
->
-
-
-<input
-
-name="expense_date"
-
-type="date"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="amount"
-
-type="number"
-
-min="1"
-
-class="form-control mb-2"
-
-placeholder="Expense Amount"
-
-required
-
->
-
-
-<input
-
-name="note"
-
-class="form-control mb-2"
-
-placeholder="Note"
-
->
-
-
-<button
-
-class="btn btn-danger w-100"
-
->
-
-
-Add Expense
-
-
-</button>
-
-
-</form>
-
-
-
-<!-- OTHER INCOME -->
-
-
-<h5>
-
-Other Income
-
-</h5>
-
-
-<form
-
-method="POST"
-
-action="{{ url_for('add_income') }}"
-
->
-
-
-<input
-
-name="income_date"
-
-type="date"
-
-class="form-control mb-2"
-
-required
-
->
-
-
-<input
-
-name="amount"
-
-type="number"
-
-min="1"
-
-class="form-control mb-2"
-
-placeholder="Income Amount"
-
-required
-
->
-
-
-<input
-
-name="note"
-
-class="form-control mb-2"
-
-placeholder="Note"
-
->
-
-
-<button
-
-class="btn btn-secondary w-100"
-
->
-
-
-Add Other Income
-
-
-</button>
-
-
-</form>
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-{% endif %}
-
-
-
-<!-- ANNUAL COLLECTION -->
-
-
-<h5>
-
-Annual Monthly Collection
-
-</h5>
-
+<h5>Annual Monthly Collection</h5>
 
 <div class="table-responsive mb-4">
-
-
-<table
-
-class="table
-
-table-bordered
-
-bg-white
-
-text-center
-
-align-middle"
-
->
-
-
-<tr>
-
-
-<th>
-
-Name
-
-</th>
-
-
-{% for month in months %}
-
-
-<th class="monthly-cell">
-
-
-{{ month }}月
-
-
-</th>
-
-
-{% endfor %}
-
-
-<th>
-
-
-Total
-
-
-</th>
-
-
-</tr>
-
-
-
-{% for row in collection_matrix %}
-
-
-<tr>
-
-
-<td class="fw-bold">
-
-
-{{ row.user.name }}
-
-
-</td>
-
-
-
-{% for month in months %}
-
-
-{% set cell = row.months[month] %}
-
-
-<td>
-
-
-{% if cell.status == "none" %}
-
-
-<span class="text-muted">
-
--
-
-</span>
-
-
-{% elif cell.status == "unpaid" %}
-
-
-<span class="badge bg-danger">
-
-未払い
-
-</span>
-
-
-<br>
-
-
-<small>
-
-
-¥{{ cell.expected | money }}
-
-
-</small>
-
-
-{% elif cell.status == "partial" %}
-
-
-<span class="badge bg-warning text-dark">
-
-一部
-
-</span>
-
-
-<br>
-
-
-<small>
-
-
-¥{{ cell.paid | money }}
-
-/
-
-¥{{ cell.expected | money }}
-
-
-</small>
-
-
-{% elif cell.status == "paid" %}
-
-
-<span class="badge bg-success">
-
-済
-
-</span>
-
-
-<br>
-
-
-<small>
-
-
-¥{{ cell.paid | money }}
-
-
-</small>
-
-
-{% else %}
-
-
-<span class="badge bg-info text-dark">
-
-過払い
-
-</span>
-
-
-<br>
-
-
-<small>
-
-
-¥{{ cell.paid | money }}
-
-
-</small>
-
-
-{% endif %}
-
-
-</td>
-
-
-{% endfor %}
-
-
-
-<td class="fw-bold">
-
-
-¥{{ row.total_paid | money }}
-
-
-/
-
-
-¥{{ row.total_expected | money }}
-
-
-</td>
-
-
-</tr>
-
-
-{% endfor %}
-
-
-</table>
-
-
+    <table class="table table-bordered bg-white text-center align-middle">
+        <tr>
+            <th>Name</th>
+            {% for month in months %}
+            <th class="monthly-cell">
+                {{ month }}月
+            </th>
+            {% endfor %}
+            <th>Total</th>
+        </tr>
+
+        {% for row in collection_matrix %}
+        <tr>
+            <td class="fw-bold">
+                {{ row.user.name }}
+            </td>
+
+            {% for month in months %}
+                {% set cell = row.months[month] %}
+                <td>
+                    {% if cell.status == "none" %}
+                        <span class="text-muted">-</span>
+                    {% elif cell.status == "unpaid" %}
+                        <span class="badge bg-danger">未払い</span><br>
+                        <small>¥{{ cell.expected | money }}</small>
+                    {% elif cell.status == "partial" %}
+                        <span class="badge bg-warning text-dark">一部</span><br>
+                        <small>
+                            ¥{{ cell.paid | money }} /
+                            ¥{{ cell.expected | money }}
+                        </small>
+                    {% elif cell.status == "paid" %}
+                        <span class="badge bg-success">済</span><br>
+                        <small>¥{{ cell.paid | money }}</small>
+                    {% else %}
+                        <span class="badge bg-info text-dark">過払い</span><br>
+                        <small>¥{{ cell.paid | money }}</small>
+                    {% endif %}
+                </td>
+            {% endfor %}
+
+            <td class="fw-bold">
+                ¥{{ row.total_paid | money }} /
+                ¥{{ row.total_expected | money }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
-
-
-<!-- LOANS -->
-
-
-<h5>
-
-Loans
-
-</h5>
-
+<h5>Loan Summary by User</h5>
 
 <div class="table-responsive mb-4">
-
-
-<table class="table table-bordered bg-white">
-
-
-<tr>
-
-
-<th>
-
-Borrower
-
-</th>
-
-
-<th>
-
-Date
-
-</th>
-
-
-<th>
-
-Loan Amount
-
-</th>
-
-
-<th>
-
-Repaid
-
-</th>
-
-
-<th>
-
-Remaining
-
-</th>
-
-
-<th>
-
-Status
-
-</th>
-
-
-</tr>
-
-
-
-{% for loan in loans %}
-
-
-{% set repaid = loan_repaid(loan) %}
-
-
-{% set remaining = loan.amount - repaid %}
-
-
-<tr>
-
-
-<td>
-
-
-{{ loan.borrower.name }}
-
-
-</td>
-
-
-<td>
-
-
-{{ loan.loan_date }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ loan.amount | money }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ repaid | money }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ remaining | money }}
-
-
-</td>
-
-
-<td>
-
-
-{% if remaining <= 0 %}
-
-
-<span class="badge bg-success">
-
-
-完済
-
-
-</span>
-
-
-{% else %}
-
-
-<span class="badge bg-warning text-dark">
-
-
-返済中
-
-
-</span>
-
-
-{% endif %}
-
-
-</td>
-
-
-</tr>
-
-
-{% endfor %}
-
-
-</table>
-
-
+    <table class="table table-bordered bg-white">
+        <tr>
+            <th>Name</th>
+            <th>Total Loan</th>
+            <th>Total Repaid</th>
+            <th>Total Remaining</th>
+            <th>Status</th>
+        </tr>
+
+        {% for row in loan_summary %}
+        <tr>
+            <td class="fw-bold">
+                {{ row.user.name }}
+            </td>
+            <td>¥{{ row.total_loan | money }}</td>
+            <td>¥{{ row.total_repaid | money }}</td>
+            <td>¥{{ row.total_remaining | money }}</td>
+            <td>
+                {% if row.total_remaining <= 0 %}
+                    <span class="badge bg-success">完済</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark">返済中</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
-
-
-<!-- INSTALLMENTS -->
-
-
-<h5>
-
-Installments
-
-</h5>
-
+<h5>Loan Details</h5>
 
 <div class="table-responsive mb-4">
+    <table class="table table-bordered bg-white">
+        <tr>
+            <th>Borrower</th>
+            <th>Date</th>
+            <th>Loan Amount</th>
+            <th>Repaid</th>
+            <th>Remaining</th>
+            <th>Status</th>
+        </tr>
 
-
-<table class="table table-bordered bg-white">
-
-
-<tr>
-
-
-<th>
-
-Name
-
-</th>
-
-
-<th>
-
-Year
-
-</th>
-
-
-<th>
-
-Opening Balance
-
-</th>
-
-
-<th>
-
-Current Balance
-
-</th>
-
-
-</tr>
-
-
-
-{% for item in installments %}
-
-
-<tr>
-
-
-<td>
-
-
-{{ item.user.name }}
-
-
-</td>
-
-
-<td>
-
-
-{{ item.year }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ item.opening_balance | money }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ installment_total(item) | money }}
-
-
-</td>
-
-
-</tr>
-
-
-{% endfor %}
-
-
-</table>
-
-
+        {% for loan in loans %}
+            {% set repaid = loan_repaid(loan) %}
+            {% set remaining = loan.amount - repaid %}
+            <tr>
+                <td>{{ loan.borrower.name }}</td>
+                <td>{{ loan.loan_date }}</td>
+                <td>¥{{ loan.amount | money }}</td>
+                <td>¥{{ repaid | money }}</td>
+                <td>¥{{ remaining | money }}</td>
+                <td>
+                    {% if remaining <= 0 %}
+                        <span class="badge bg-success">完済</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">返済中</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
 </div>
-
-
 
 {% if current_user.role == "admin" %}
 
-
-
-<!-- TRANSACTIONS -->
-
-
-<h5>
-
-Transaction Ledger
-
-</h5>
-
+<h5>Transaction Ledger</h5>
 
 <div class="table-responsive">
+    <table class="table table-bordered bg-white">
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Note</th>
+        </tr>
 
-
-<table class="table table-bordered bg-white">
-
-
-<tr>
-
-
-<th>
-
-Date
-
-</th>
-
-
-<th>
-
-Type
-
-</th>
-
-
-<th>
-
-Amount
-
-</th>
-
-
-<th>
-
-Note
-
-</th>
-
-
-</tr>
-
-
-
-{% for transaction in transactions %}
-
-
-<tr>
-
-
-<td>
-
-
-{{ transaction.tx_date }}
-
-
-</td>
-
-
-<td>
-
-
-{{ transaction.tx_type }}
-
-
-</td>
-
-
-<td>
-
-
-¥{{ transaction.amount | money }}
-
-
-</td>
-
-
-<td>
-
-
-{{ transaction.note }}
-
-
-</td>
-
-
-</tr>
-
-
-{% endfor %}
-
-
-</table>
-
-
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction.tx_date }}</td>
+            <td>{{ transaction.tx_type }}</td>
+            <td>¥{{ transaction.amount | money }}</td>
+            <td>{{ transaction.note }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
-
-
 {% endif %}
-
-
 
 {% endblock %}
