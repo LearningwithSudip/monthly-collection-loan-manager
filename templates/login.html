@@ -1,18 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Monthly Collection & Loan Manager</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
-    <h2>Monthly Collection & Loan Manager</h2>
+{% extends "base.html" %}
 
-    <form method="post">
-        <input name="email" placeholder="Email" required><br><br>
-        <input name="password" type="password" placeholder="Password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
+{% block content %}
 
-    <p>Admin: admin@test.com / admin123</p>
-</body>
-</html>
+<div class="card shadow-sm mx-auto" style="max-width: 420px;">
+    <div class="card-body">
+        <h4 class="mb-3">Login</h4>
+
+        <form method="post">
+            <div class="mb-3">
+                <label>Email</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+
+            <button class="btn btn-primary w-100">Login</button>
+        </form>
+
+        <hr>
+        <p class="small text-muted">
+            初回は `/setup-db` → `/init-admin` を開いてください。
+        </p>
+    </div>
+</div>
+
+{% endblock %}
