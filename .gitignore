@@ -4,3 +4,5 @@ __pycache__/
 .env
 instance/
 venv/
+.venv/
+.DS_Store
