@@ -12,21 +12,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
-
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL",
-    "sqlite:///monthly_manager.db"
-)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///monthly_manager.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 database_url = app.config["SQLALCHEMY_DATABASE_URI"]
 if database_url.startswith("postgres://"):
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_url.replace(
-        "postgres://",
-        "postgresql://",
-        1
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url.replace("postgres://", "postgresql://", 1)
 
 db = SQLAlchemy(app)
 
@@ -43,11 +35,7 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(20), default="user", nullable=False)
     is_active_user = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -67,11 +55,7 @@ class CollectionPlan(db.Model):
     month = db.Column(db.Integer, nullable=False)
     expected_amount = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
-    )
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = db.relationship("User", backref="collection_plans")
     payments = db.relationship("CollectionPayment", backref="plan", lazy=True)
@@ -163,13 +147,12 @@ def admin_required(function):
 
 
 def create_transaction(transaction_type, amount, note):
-    transaction = Transaction(
+    db.session.add(Transaction(
         tx_date=date.today(),
         tx_type=transaction_type,
         amount=int(amount),
         note=note
-    )
-    db.session.add(transaction)
+    ))
 
 
 def loan_repaid(loan):
@@ -187,21 +170,13 @@ def ensure_admin():
         existing_admin.name = admin_name
         existing_admin.role = "admin"
         existing_admin.is_active_user = True
-
         if not existing_admin.check_password(admin_password):
             existing_admin.set_password(admin_password)
-
         db.session.commit()
         return
 
-    admin = User(
-        name=admin_name,
-        email=admin_email,
-        role="admin",
-        is_active_user=True
-    )
+    admin = User(name=admin_name, email=admin_email, role="admin", is_active_user=True)
     admin.set_password(admin_password)
-
     db.session.add(admin)
     db.session.commit()
 
@@ -226,12 +201,6 @@ def setup_db():
     return "Database and Admin created successfully."
 
 
-@app.route("/init-admin")
-def init_admin():
-    ensure_admin()
-    return "Admin initialized successfully."
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -241,10 +210,7 @@ def login():
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
 
-        user = User.query.filter_by(
-            email=email,
-            is_active_user=True
-        ).first()
+        user = User.query.filter_by(email=email, is_active_user=True).first()
 
         if user and user.check_password(password):
             login_user(user)
@@ -285,26 +251,16 @@ def dashboard():
 
     if current_user.role == "admin":
         loans = Loan.query.order_by(Loan.loan_date.desc()).all()
-    else:
-        loans = Loan.query.filter_by(
-            borrower_id=current_user.id
-        ).order_by(Loan.loan_date.desc()).all()
-
-    if current_user.role == "admin":
         transactions = Transaction.query.order_by(Transaction.id.desc()).limit(50).all()
     else:
+        loans = Loan.query.filter_by(borrower_id=current_user.id).order_by(Loan.loan_date.desc()).all()
         transactions = []
 
     months = list(range(1, 13))
     collection_matrix = []
 
     for user in users:
-        row = {
-            "user": user,
-            "months": {},
-            "total_expected": 0,
-            "total_paid": 0
-        }
+        row = {"user": user, "months": {}, "total_expected": 0, "total_paid": 0}
 
         for month in months:
             plan = CollectionPlan.query.filter_by(
@@ -339,25 +295,11 @@ def dashboard():
 
         collection_matrix.append(row)
 
-    total_collections = sum(
-        payment.paid_amount for payment in CollectionPayment.query.all()
-    )
-
-    total_loan_disbursement = sum(
-        loan.amount for loan in Loan.query.all()
-    )
-
-    total_loan_repayment = sum(
-        repayment.amount for repayment in LoanRepayment.query.all()
-    )
-
-    total_expenses = sum(
-        expense.amount for expense in Expense.query.all()
-    )
-
-    total_other_income = sum(
-        income.amount for income in OtherIncome.query.all()
-    )
+    total_collections = sum(payment.paid_amount for payment in CollectionPayment.query.all())
+    total_loan_disbursement = sum(loan.amount for loan in Loan.query.all())
+    total_loan_repayment = sum(repayment.amount for repayment in LoanRepayment.query.all())
+    total_expenses = sum(expense.amount for expense in Expense.query.all())
+    total_other_income = sum(income.amount for income in OtherIncome.query.all())
 
     cash_in_hand = (
         total_collections
@@ -379,15 +321,10 @@ def dashboard():
     )
 
     loan_summary = []
-
-    if current_user.role == "admin":
-        loan_users = User.query.filter_by(is_active_user=True).order_by(User.name).all()
-    else:
-        loan_users = [current_user]
+    loan_users = User.query.filter_by(is_active_user=True).order_by(User.name).all() if current_user.role == "admin" else [current_user]
 
     for user in loan_users:
         user_loans = Loan.query.filter_by(borrower_id=user.id).all()
-
         total_loan = sum(loan.amount for loan in user_loans)
         total_repaid = sum(loan_repaid(loan) for loan in user_loans)
         total_remaining = total_loan - total_repaid
@@ -424,6 +361,41 @@ def dashboard():
     )
 
 
+@app.route("/user-history/<int:user_id>")
+@login_required
+def user_history(user_id):
+    if current_user.role != "admin" and current_user.id != user_id:
+        flash("他のユーザーの履歴は確認できません。")
+        return redirect(url_for("dashboard"))
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        flash("ユーザーが見つかりません。")
+        return redirect(url_for("dashboard"))
+
+    collection_plans = CollectionPlan.query.filter_by(
+        user_id=user.id
+    ).order_by(
+        CollectionPlan.year.desc(),
+        CollectionPlan.month.desc()
+    ).all()
+
+    loans = Loan.query.filter_by(
+        borrower_id=user.id
+    ).order_by(
+        Loan.loan_date.desc()
+    ).all()
+
+    return render_template(
+        "user_history.html",
+        user=user,
+        collection_plans=collection_plans,
+        loans=loans,
+        loan_repaid=loan_repaid
+    )
+
+
 @app.route("/users/add", methods=["POST"])
 @login_required
 @admin_required
@@ -444,39 +416,13 @@ def add_user():
         flash("このEmailは既に登録されています。")
         return redirect(url_for("dashboard"))
 
-    user = User(
-        name=name,
-        email=email,
-        role=role,
-        is_active_user=True
-    )
+    user = User(name=name, email=email, role=role, is_active_user=True)
     user.set_password(password)
 
     db.session.add(user)
     db.session.commit()
 
     flash("ユーザーを追加しました。")
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/users/deactivate/<int:user_id>", methods=["POST"])
-@login_required
-@admin_required
-def deactivate_user(user_id):
-    user = db.session.get(User, user_id)
-
-    if not user:
-        flash("ユーザーが見つかりません。")
-        return redirect(url_for("dashboard"))
-
-    if user.id == current_user.id:
-        flash("自分自身は無効化できません。")
-        return redirect(url_for("dashboard"))
-
-    user.is_active_user = False
-    db.session.commit()
-
-    flash("ユーザーを無効化しました。")
     return redirect(url_for("dashboard"))
 
 
@@ -491,10 +437,6 @@ def add_collection_plan():
 
     if month < 1 or month > 12:
         flash("Monthは1～12で入力してください。")
-        return redirect(url_for("dashboard", year=year))
-
-    if expected_amount < 0:
-        flash("Expected Amountは0以上で入力してください。")
         return redirect(url_for("dashboard", year=year))
 
     existing_plan = CollectionPlan.query.filter_by(
@@ -525,18 +467,13 @@ def add_collection_plan():
 @login_required
 @admin_required
 def add_collection_payment():
-    plan_id = int(request.form.get("plan_id"))
-    plan = db.session.get(CollectionPlan, plan_id)
+    plan = db.session.get(CollectionPlan, int(request.form.get("plan_id")))
 
     if not plan:
         flash("集金予定が見つかりません。")
         return redirect(url_for("dashboard"))
 
     paid_amount = int(request.form.get("paid_amount"))
-
-    if paid_amount <= 0:
-        flash("支払額は1以上で入力してください。")
-        return redirect(url_for("dashboard", year=plan.year))
 
     payment = CollectionPayment(
         plan_id=plan.id,
@@ -565,10 +502,6 @@ def add_collection_payment():
 def add_loan():
     loan_amount = int(request.form.get("amount"))
 
-    if loan_amount <= 0:
-        flash("Loan Amountは1以上で入力してください。")
-        return redirect(url_for("dashboard"))
-
     loan = Loan(
         borrower_id=int(request.form.get("borrower_id")),
         loan_date=parse_date(request.form.get("loan_date")),
@@ -579,11 +512,7 @@ def add_loan():
 
     db.session.add(loan)
 
-    create_transaction(
-        "loan_disbursement",
-        -loan.amount,
-        "Loan disbursement"
-    )
+    create_transaction("loan_disbursement", -loan.amount, "Loan disbursement")
 
     db.session.commit()
 
@@ -595,8 +524,7 @@ def add_loan():
 @login_required
 @admin_required
 def add_loan_repayment():
-    loan_id = int(request.form.get("loan_id"))
-    loan = db.session.get(Loan, loan_id)
+    loan = db.session.get(Loan, int(request.form.get("loan_id")))
 
     if not loan:
         flash("Loanが見つかりません。")
@@ -604,10 +532,6 @@ def add_loan_repayment():
 
     repayment_amount = int(request.form.get("amount"))
     remaining = loan.amount - loan_repaid(loan)
-
-    if repayment_amount <= 0:
-        flash("返済額は1以上で入力してください。")
-        return redirect(url_for("dashboard"))
 
     if repayment_amount > remaining:
         flash("返済額がLoan Remainingを超えています。")
@@ -643,10 +567,6 @@ def add_loan_repayment():
 def add_expense():
     amount = int(request.form.get("amount"))
 
-    if amount <= 0:
-        flash("Expense Amountは1以上で入力してください。")
-        return redirect(url_for("dashboard"))
-
     expense = Expense(
         expense_date=parse_date(request.form.get("expense_date")),
         amount=amount,
@@ -654,13 +574,7 @@ def add_expense():
     )
 
     db.session.add(expense)
-
-    create_transaction(
-        "expense",
-        -expense.amount,
-        expense.note or "Expense"
-    )
-
+    create_transaction("expense", -expense.amount, expense.note or "Expense")
     db.session.commit()
 
     flash("支出を登録しました。")
@@ -673,10 +587,6 @@ def add_expense():
 def add_income():
     amount = int(request.form.get("amount"))
 
-    if amount <= 0:
-        flash("Income Amountは1以上で入力してください。")
-        return redirect(url_for("dashboard"))
-
     income = OtherIncome(
         income_date=parse_date(request.form.get("income_date")),
         amount=amount,
@@ -684,13 +594,7 @@ def add_income():
     )
 
     db.session.add(income)
-
-    create_transaction(
-        "other_income",
-        income.amount,
-        income.note or "Other Income"
-    )
-
+    create_transaction("other_income", income.amount, income.note or "Other Income")
     db.session.commit()
 
     flash("その他収入を登録しました。")
