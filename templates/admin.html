@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<h2>Admin Dashboard</h2>
+<p>Welcome, {{ session.name }}</p>
+<a href="/logout">Logout</a>
+
+<hr>
+
+<h3>Add User</h3>
+<form method="post" action="/add_user">
+    <input name="name" placeholder="Name" required>
+    <input name="email" placeholder="Email" required>
+    <input name="password" placeholder="Password" required>
+    <select name="role">
+        <option value="user">General User</option>
+        <option value="admin">Admin</option>
+    </select>
+    <button>Add User</button>
+</form>
+
+<hr>
+
+<h3>Add Monthly Collection / Payment</h3>
+<form method="post" action="/add_payment">
+    <select name="user_id">
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+    </select>
+
+    <input name="year" placeholder="Year" value="2026">
+    <input name="month" placeholder="Month">
+    <input name="amount" placeholder="Amount">
+
+    <select name="type">
+        <option value="collection">Monthly Collection</option>
+        <option value="loan_payment">Loan Payment</option>
+        <option value="installment">Installment</option>
+    </select>
+
+    <input name="note" placeholder="Note">
+    <button>Add Payment</button>
+</form>
+
+<hr>
+
+<h3>Add Loan</h3>
+<form method="post" action="/add_loan">
+    <select name="user_id">
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+    </select>
+
+    <input name="loan_amount" placeholder="Loan Amount">
+    <input name="paid_amount" placeholder="Paid Amount" value="0">
+    <button>Add Loan</button>
+</form>
+
+<hr>
+
+<h3>Payments</h3>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Year</th>
+        <th>Month</th>
+        <th>Amount</th>
+        <th>Type</th>
+        <th>Note</th>
+    </tr>
+    {% for p in payments %}
+    <tr>
+        <td>{{ p.name }}</td>
+        <td>{{ p.year }}</td>
+        <td>{{ p.month }}</td>
+        <td>{{ "{:,}".format(p.amount) }}</td>
+        <td>{{ p.type }}</td>
+        <td>{{ p.note }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h3>Loans</h3>
+<table border="1">
+    <tr>
+        <th>Name</th>
+        <th>Loan Amount</th>
+        <th>Paid</th>
+        <th>Remaining</th>
+    </tr>
+    {% for l in loans %}
+    <tr>
+        <td>{{ l.name }}</td>
+        <td>{{ "{:,}".format(l.loan_amount) }}</td>
+        <td>{{ "{:,}".format(l.paid_amount) }}</td>
+        <td>{{ "{:,}".format(l.remaining) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
