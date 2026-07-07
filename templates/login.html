@@ -2,41 +2,29 @@
 
 {% block content %}
 
-<div
-    class="card shadow-sm mx-auto"
-    style="max-width: 430px;"
->
-    <div class="card-body">
-        <h4 class="mb-4">Login</h4>
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="login-logo">M</div>
+
+        <h2>Welcome Back</h2>
+        <p>Monthly Collection & Loan Manager</p>
 
         <form method="POST">
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input
-                    type="email"
-                    name="email"
-                    class="form-control"
-                    required
-                >
-            </div>
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" required>
 
-            <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input
-                    type="password"
-                    name="password"
-                    class="form-control"
-                    required
-                >
-            </div>
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
 
-            <button
-                type="submit"
-                class="btn btn-primary w-100"
-            >
+            <button type="submit" class="btn btn-dark w-100 mt-3">
                 Login
             </button>
         </form>
+
+        <div class="demo-info">
+            <div>Email: admin@test.com</div>
+            <div>Password: admin123</div>
+        </div>
     </div>
 </div>
 
