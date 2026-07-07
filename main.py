@@ -47,7 +47,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
-# PostgreSQL URL compatibility
 database_url = app.config["SQLALCHEMY_DATABASE_URI"]
 
 if database_url.startswith("postgres://"):
@@ -68,7 +67,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
 login_manager.login_view = "login"
-
 login_manager.login_message = "ログインしてください。"
 
 
@@ -123,11 +121,9 @@ class User(db.Model, UserMixin):
     )
 
     def set_password(self, password):
-
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-
         return check_password_hash(
             self.password_hash,
             password
@@ -135,12 +131,11 @@ class User(db.Model, UserMixin):
 
     @property
     def is_active(self):
-
         return self.is_active_user
 
 
 # ============================================================
-# Monthly Collection Plan
+# Collection Plan
 # ============================================================
 
 class CollectionPlan(db.Model):
@@ -195,7 +190,7 @@ class CollectionPlan(db.Model):
 
 
 # ============================================================
-# Monthly Collection Payment
+# Collection Payment
 # ============================================================
 
 class CollectionPayment(db.Model):
@@ -351,15 +346,12 @@ class InstallmentBalance(db.Model):
     jan = db.Column(db.Integer, default=0)
     feb = db.Column(db.Integer, default=0)
     mar = db.Column(db.Integer, default=0)
-
     apr = db.Column(db.Integer, default=0)
     may = db.Column(db.Integer, default=0)
     jun = db.Column(db.Integer, default=0)
-
     jul = db.Column(db.Integer, default=0)
     aug = db.Column(db.Integer, default=0)
     sep = db.Column(db.Integer, default=0)
-
     oct = db.Column(db.Integer, default=0)
     nov = db.Column(db.Integer, default=0)
     dec = db.Column(db.Integer, default=0)
@@ -493,11 +485,9 @@ def load_user(user_id):
 def money(value):
 
     try:
-
         return f"{int(value):,}"
 
-    except:
-
+    except (TypeError, ValueError):
         return "0"
 
 
@@ -560,20 +550,15 @@ def create_transaction(
 def loan_repaid(loan):
 
     return sum(
-
         repayment.amount
-
         for repayment in loan.repayments
-
     )
 
 
 def installment_total(item):
 
     return (
-
         item.opening_balance
-
         + item.jan
         + item.feb
         + item.mar
@@ -586,42 +571,38 @@ def installment_total(item):
         + item.oct
         + item.nov
         + item.dec
-
     )
 
 
 # ============================================================
-# Initial Admin
+# Fixed Initial Admin
 # ============================================================
 
 def ensure_admin():
 
-    admin_email = os.environ.get(
-        "ADMIN_EMAIL"
-    )
-
-    admin_password = os.environ.get(
-        "ADMIN_PASSWORD"
-    )
-
-    admin_name = os.environ.get(
-        "ADMIN_NAME",
-        "Admin"
-    )
-
-    if not admin_email:
-
-        return
-
-    if not admin_password:
-
-        return
+    admin_email = "admin@test.com"
+    admin_password = "admin123"
+    admin_name = "Sudip"
 
     existing_admin = User.query.filter_by(
         email=admin_email
     ).first()
 
     if existing_admin:
+
+        existing_admin.name = admin_name
+        existing_admin.role = "admin"
+        existing_admin.is_active_user = True
+
+        if not existing_admin.check_password(
+            admin_password
+        ):
+
+            existing_admin.set_password(
+                admin_password
+            )
+
+        db.session.commit()
 
         return
 
@@ -631,7 +612,9 @@ def ensure_admin():
 
         email=admin_email,
 
-        role="admin"
+        role="admin",
+
+        is_active_user=True
 
     )
 
@@ -683,7 +666,9 @@ def setup_db():
 
     db.create_all()
 
-    return "Database created successfully."
+    ensure_admin()
+
+    return "Database and Admin created successfully."
 
 
 # ============================================================
@@ -695,7 +680,7 @@ def init_admin():
 
     ensure_admin()
 
-    return "Admin initialized."
+    return "Admin initialized successfully."
 
 
 # ============================================================
@@ -708,22 +693,27 @@ def init_admin():
 )
 def login():
 
-    if request.method == "POST":
+    if current_user.is_authenticated:
 
-        email = request.form.get(
-            "email"
+        return redirect(
+            url_for("dashboard")
         )
 
-        password = request.form.get(
-            "password"
+    if request.method == "POST":
+
+        email = (
+            request.form.get("email")
+            or ""
+        ).strip().lower()
+
+        password = (
+            request.form.get("password")
+            or ""
         )
 
         user = User.query.filter_by(
-
             email=email,
-
             is_active_user=True
-
         ).first()
 
         if (
@@ -738,7 +728,7 @@ def login():
             )
 
         flash(
-            "メールまたはパスワードが違います。"
+            "メールアドレスまたはパスワードが違います。"
         )
 
     return render_template(
@@ -769,29 +759,26 @@ def logout():
 @login_required
 def dashboard():
 
-    selected_year = int(
+    try:
 
-        request.args.get(
-
-            "year",
-
-            datetime.now().year
-
+        selected_year = int(
+            request.args.get(
+                "year",
+                datetime.now().year
+            )
         )
 
-    )
+    except (TypeError, ValueError):
+
+        selected_year = datetime.now().year
 
 
     if current_user.role == "admin":
 
         users = User.query.filter_by(
-
             is_active_user=True
-
         ).order_by(
-
             User.name
-
         ).all()
 
     else:
@@ -800,18 +787,13 @@ def dashboard():
 
 
     all_users = User.query.order_by(
-
         User.name
-
     ).all()
 
 
     user_ids = [
-
         user.id
-
         for user in users
-
     ]
 
 
@@ -821,8 +803,7 @@ def dashboard():
             user_ids
         ),
 
-        CollectionPlan.year
-        == selected_year
+        CollectionPlan.year == selected_year
 
     ).order_by(
 
@@ -834,21 +815,15 @@ def dashboard():
     if current_user.role == "admin":
 
         loans = Loan.query.order_by(
-
             Loan.loan_date.desc()
-
         ).all()
 
     else:
 
         loans = Loan.query.filter_by(
-
             borrower_id=current_user.id
-
         ).order_by(
-
             Loan.loan_date.desc()
-
         ).all()
 
 
@@ -858,8 +833,7 @@ def dashboard():
             user_ids
         ),
 
-        InstallmentBalance.year
-        == selected_year
+        InstallmentBalance.year == selected_year
 
     ).all()
 
@@ -867,9 +841,7 @@ def dashboard():
     if current_user.role == "admin":
 
         transactions = Transaction.query.order_by(
-
             Transaction.id.desc()
-
         ).limit(50).all()
 
     else:
@@ -914,31 +886,19 @@ def dashboard():
 
 
             expected = (
-
                 plan.expected_amount
-
                 if plan
-
                 else 0
-
             )
 
 
             paid = (
-
                 sum(
-
                     payment.paid_amount
-
-                    for payment
-                    in plan.payments
-
+                    for payment in plan.payments
                 )
-
                 if plan
-
                 else 0
-
             )
 
 
@@ -977,7 +937,6 @@ def dashboard():
 
 
             row["total_expected"] += expected
-
             row["total_paid"] += paid
 
 
@@ -985,77 +944,52 @@ def dashboard():
 
 
     total_collections = sum(
-
         payment.paid_amount
-
-        for payment
-        in CollectionPayment.query.all()
-
+        for payment in CollectionPayment.query.all()
     )
 
 
     total_loan_disbursement = sum(
-
         loan.amount
-
-        for loan
-        in Loan.query.all()
-
+        for loan in Loan.query.all()
     )
 
 
     total_loan_repayment = sum(
-
         repayment.amount
-
-        for repayment
-        in LoanRepayment.query.all()
-
+        for repayment in LoanRepayment.query.all()
     )
 
 
     total_expenses = sum(
-
         expense.amount
-
-        for expense
-        in Expense.query.all()
-
+        for expense in Expense.query.all()
     )
 
 
     total_other_income = sum(
-
         income.amount
-
-        for income
-        in OtherIncome.query.all()
-
+        for income in OtherIncome.query.all()
     )
 
 
     cash_in_hand = (
-
         total_collections
-
         + total_loan_repayment
-
         - total_loan_disbursement
-
         + total_other_income
-
         - total_expenses
-
     )
 
 
     outstanding_loans = sum(
 
-        loan.amount
-        - loan_repaid(loan)
+        max(
+            0,
+            loan.amount - loan_repaid(loan)
+        )
 
-        for loan
-        in Loan.query.all()
+        for loan in Loan.query.all()
 
     )
 
@@ -1063,19 +997,13 @@ def dashboard():
     unpaid_collections = sum(
 
         max(
-
             0,
-
-            cell["expected"]
-            - cell["paid"]
-
+            cell["expected"] - cell["paid"]
         )
 
-        for row
-        in collection_matrix
+        for row in collection_matrix
 
-        for cell
-        in row["months"].values()
+        for cell in row["months"].values()
 
     )
 
@@ -1137,14 +1065,45 @@ def dashboard():
 @admin_required
 def add_user():
 
-    email = request.form.get(
-        "email"
+    name = (
+        request.form.get("name")
+        or ""
+    ).strip()
+
+    email = (
+        request.form.get("email")
+        or ""
+    ).strip().lower()
+
+    password = (
+        request.form.get("password")
+        or ""
     )
 
+    role = request.form.get(
+        "role",
+        "user"
+    )
+
+
+    if not name or not email or not password:
+
+        flash(
+            "Name、Email、Passwordは必須です。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
+
+
+    if role not in ("admin", "user"):
+
+        role = "user"
+
+
     existing_user = User.query.filter_by(
-
         email=email
-
     ).first()
 
 
@@ -1161,26 +1120,19 @@ def add_user():
 
     user = User(
 
-        name=request.form.get(
-            "name"
-        ),
+        name=name,
 
         email=email,
 
-        role=request.form.get(
-            "role",
-            "user"
-        )
+        role=role,
+
+        is_active_user=True
 
     )
 
 
     user.set_password(
-
-        request.form.get(
-            "password"
-        )
-
+        password
     )
 
 
@@ -1217,17 +1169,36 @@ def deactivate_user(user_id):
     )
 
 
-    if user:
+    if not user:
 
-        if user.id != current_user.id:
+        flash(
+            "ユーザーが見つかりません。"
+        )
 
-            user.is_active_user = False
+        return redirect(
+            url_for("dashboard")
+        )
 
-            db.session.commit()
 
-            flash(
-                "ユーザーを無効化しました。"
-            )
+    if user.id == current_user.id:
+
+        flash(
+            "自分自身は無効化できません。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
+
+
+    user.is_active_user = False
+
+    db.session.commit()
+
+
+    flash(
+        "ユーザーを無効化しました。"
+    )
 
 
     return redirect(
@@ -1264,6 +1235,34 @@ def add_collection_plan():
     )
 
 
+    if month < 1 or month > 12:
+
+        flash(
+            "Monthは1～12で入力してください。"
+        )
+
+        return redirect(
+            url_for(
+                "dashboard",
+                year=year
+            )
+        )
+
+
+    if expected_amount < 0:
+
+        flash(
+            "Expected Amountは0以上で入力してください。"
+        )
+
+        return redirect(
+            url_for(
+                "dashboard",
+                year=year
+            )
+        )
+
+
     existing_plan = CollectionPlan.query.filter_by(
 
         user_id=user_id,
@@ -1282,15 +1281,10 @@ def add_collection_plan():
         )
 
         return redirect(
-
             url_for(
-
                 "dashboard",
-
                 year=year
-
             )
-
         )
 
 
@@ -1318,15 +1312,10 @@ def add_collection_plan():
 
 
     return redirect(
-
         url_for(
-
             "dashboard",
-
             year=year
-
         )
-
     )
 
 
@@ -1342,16 +1331,13 @@ def add_collection_plan():
 @admin_required
 def add_collection_payment():
 
+    plan_id = int(
+        request.form.get("plan_id")
+    )
+
     plan = db.session.get(
-
         CollectionPlan,
-
-        int(
-            request.form.get(
-                "plan_id"
-            )
-        )
-
+        plan_id
     )
 
 
@@ -1366,24 +1352,35 @@ def add_collection_payment():
         )
 
 
+    paid_amount = int(
+        request.form.get("paid_amount")
+    )
+
+
+    if paid_amount <= 0:
+
+        flash(
+            "支払額は1以上で入力してください。"
+        )
+
+        return redirect(
+            url_for(
+                "dashboard",
+                year=plan.year
+            )
+        )
+
+
     payment = CollectionPayment(
 
         plan_id=plan.id,
 
-        paid_amount=int(
-
-            request.form.get(
-                "paid_amount"
-            )
-
-        ),
+        paid_amount=paid_amount,
 
         paid_date=parse_date(
-
             request.form.get(
                 "paid_date"
             )
-
         ),
 
         note=request.form.get(
@@ -1420,15 +1417,10 @@ def add_collection_payment():
 
 
     return redirect(
-
         url_for(
-
             "dashboard",
-
             year=plan.year
-
         )
-
     )
 
 
@@ -1444,35 +1436,43 @@ def add_collection_payment():
 @admin_required
 def add_loan():
 
+    loan_amount = int(
+        request.form.get("amount")
+    )
+
+
+    if loan_amount <= 0:
+
+        flash(
+            "Loan Amountは1以上で入力してください。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
+
+
     loan = Loan(
 
         borrower_id=int(
-
             request.form.get(
                 "borrower_id"
             )
-
         ),
 
         loan_date=parse_date(
-
             request.form.get(
                 "loan_date"
             )
-
         ),
 
-        amount=int(
-
-            request.form.get(
-                "amount"
-            )
-
-        ),
+        amount=loan_amount,
 
         note=request.form.get(
             "note"
-        )
+        ),
+
+        is_closed=False
 
     )
 
@@ -1516,18 +1516,13 @@ def add_loan():
 @admin_required
 def add_loan_repayment():
 
+    loan_id = int(
+        request.form.get("loan_id")
+    )
+
     loan = db.session.get(
-
         Loan,
-
-        int(
-
-            request.form.get(
-                "loan_id"
-            )
-
-        )
-
+        loan_id
     )
 
 
@@ -1543,21 +1538,25 @@ def add_loan_repayment():
 
 
     repayment_amount = int(
-
-        request.form.get(
-            "amount"
-        )
-
+        request.form.get("amount")
     )
 
 
     remaining = (
-
         loan.amount
-
         - loan_repaid(loan)
-
     )
+
+
+    if repayment_amount <= 0:
+
+        flash(
+            "返済額は1以上で入力してください。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
 
 
     if repayment_amount > remaining:
@@ -1576,11 +1575,9 @@ def add_loan_repayment():
         loan_id=loan.id,
 
         repayment_date=parse_date(
-
             request.form.get(
                 "repayment_date"
             )
-
         ),
 
         amount=repayment_amount,
@@ -1628,7 +1625,7 @@ def add_loan_repayment():
 
 
 # ============================================================
-# Add Installment
+# Add / Update Installment
 # ============================================================
 
 @app.route(
@@ -1648,17 +1645,7 @@ def add_installment():
     )
 
 
-    existing = InstallmentBalance.query.filter_by(
-
-        user_id=user_id,
-
-        year=year
-
-    ).first()
-
-
     month_names = [
-
         "jan",
         "feb",
         "mar",
@@ -1671,51 +1658,53 @@ def add_installment():
         "oct",
         "nov",
         "dec"
-
     ]
 
 
     values = {
 
         month: int(
-
             request.form.get(
                 month,
                 0
             )
             or 0
-
         )
 
-        for month
-        in month_names
+        for month in month_names
 
     }
 
 
+    opening_balance = int(
+        request.form.get(
+            "opening_balance",
+            0
+        )
+        or 0
+    )
+
+
+    existing = InstallmentBalance.query.filter_by(
+
+        user_id=user_id,
+
+        year=year
+
+    ).first()
+
+
     if existing:
 
-        existing.opening_balance = int(
-
-            request.form.get(
-                "opening_balance",
-                0
-            )
-            or 0
-
-        )
+        existing.opening_balance = opening_balance
 
 
         for month in month_names:
 
             setattr(
-
                 existing,
-
                 month,
-
                 values[month]
-
             )
 
     else:
@@ -1726,15 +1715,7 @@ def add_installment():
 
             year=year,
 
-            opening_balance=int(
-
-                request.form.get(
-                    "opening_balance",
-                    0
-                )
-                or 0
-
-            ),
+            opening_balance=opening_balance,
 
             **values
 
@@ -1755,15 +1736,10 @@ def add_installment():
 
 
     return redirect(
-
         url_for(
-
             "dashboard",
-
             year=year
-
         )
-
     )
 
 
@@ -1779,23 +1755,31 @@ def add_installment():
 @admin_required
 def add_expense():
 
+    amount = int(
+        request.form.get("amount")
+    )
+
+
+    if amount <= 0:
+
+        flash(
+            "Expense Amountは1以上で入力してください。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
+
+
     expense = Expense(
 
         expense_date=parse_date(
-
             request.form.get(
                 "expense_date"
             )
-
         ),
 
-        amount=int(
-
-            request.form.get(
-                "amount"
-            )
-
-        ),
+        amount=amount,
 
         note=request.form.get(
             "note"
@@ -1844,23 +1828,31 @@ def add_expense():
 @admin_required
 def add_income():
 
+    amount = int(
+        request.form.get("amount")
+    )
+
+
+    if amount <= 0:
+
+        flash(
+            "Income Amountは1以上で入力してください。"
+        )
+
+        return redirect(
+            url_for("dashboard")
+        )
+
+
     income = OtherIncome(
 
         income_date=parse_date(
-
             request.form.get(
                 "income_date"
             )
-
         ),
 
-        amount=int(
-
-            request.form.get(
-                "amount"
-            )
-
-        ),
+        amount=amount,
 
         note=request.form.get(
             "note"
@@ -1909,4 +1901,13 @@ if __name__ == "__main__":
 
         ensure_admin()
 
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
+        ),
+        debug=False
+    )
