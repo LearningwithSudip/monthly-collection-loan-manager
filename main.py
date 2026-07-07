@@ -1,85 +1,161 @@
-from flask import Flask, render_template, request, redirect, session
-import sqlite3
+import os
+from datetime import date, datetime
+from functools import wraps
+
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user,
+    login_required, current_user
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 app = Flask(__name__)
-app.secret_key = "change_this_secret_key"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///monthly_manager.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-DB = "database.db"
+db = SQLAlchemy(app)
+
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
 
 
-def get_db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+# =========================
+# Models
+# =========================
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default="user")
+    is_active_user = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
-def init_db():
-    conn = get_db()
-    cur = conn.cursor()
+class CollectionPlan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    expected_amount = db.Column(db.Integer, nullable=False)
+    user = db.relationship("User")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'user'
+
+class CollectionPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey("collection_plan.id"), nullable=False)
+    paid_amount = db.Column(db.Integer, nullable=False)
+    paid_date = db.Column(db.Date, nullable=False)
+    note = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    plan = db.relationship("CollectionPlan")
+
+
+class Loan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    borrower_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    loan_date = db.Column(db.Date, nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.String(255))
+    borrower = db.relationship("User")
+
+
+class LoanRepayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey("loan.id"), nullable=False)
+    repayment_date = db.Column(db.Date, nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.String(255))
+    loan = db.relationship("Loan")
+
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tx_date = db.Column(db.Date, nullable=False)
+    tx_type = db.Column(db.String(50), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+# =========================
+# Helpers
+# =========================
+
+def admin_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "admin":
+            flash("Admin権限が必要です。")
+            return redirect(url_for("dashboard"))
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def money(value):
+    return f"{value:,}"
+
+
+app.jinja_env.filters["money"] = money
+
+
+def create_transaction(tx_type, amount, note):
+    tx = Transaction(
+        tx_date=date.today(),
+        tx_type=tx_type,
+        amount=amount,
+        note=note
     )
-    """)
+    db.session.add(tx)
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS payments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        year INTEGER NOT NULL,
-        month TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        type TEXT NOT NULL,
-        note TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS loans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        loan_amount INTEGER NOT NULL,
-        paid_amount INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    admin = cur.execute(
-        "SELECT * FROM users WHERE email=?",
-        ("admin@test.com",)
-    ).fetchone()
-
-    if not admin:
-        cur.execute("""
-        INSERT INTO users (name, email, password, role)
-        VALUES (?, ?, ?, ?)
-        """, (
-            "Admin",
-            "admin@test.com",
-            generate_password_hash("admin123"),
-            "admin"
-        ))
-
-    conn.commit()
-    conn.close()
-
+# =========================
+# Routes
+# =========================
 
 @app.route("/")
 def index():
-    if "user_id" not in session:
-        return redirect("/login")
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("login"))
 
-    if session["role"] == "admin":
-        return redirect("/admin")
 
-    return redirect("/user")
+@app.route("/init-admin")
+def init_admin():
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@test.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    admin_name = os.environ.get("ADMIN_NAME", "Admin")
+
+    if User.query.filter_by(email=admin_email).first():
+        return "Admin already exists."
+
+    user = User(
+        name=admin_name,
+        email=admin_email,
+        role="admin"
+    )
+    user.set_password(admin_password)
+    db.session.add(user)
+    db.session.commit()
+
+    return f"Admin created: {admin_email}"
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -88,159 +164,172 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
 
-        conn = get_db()
-        user = conn.execute(
-            "SELECT * FROM users WHERE email=?",
-            (email,)
-        ).fetchone()
-        conn.close()
+        user = User.query.filter_by(email=email, is_active_user=True).first()
 
-        if user and check_password_hash(user["password"], password):
-            session["user_id"] = user["id"]
-            session["name"] = user["name"]
-            session["role"] = user["role"]
-            return redirect("/")
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for("dashboard"))
 
-        return "メールまたはパスワードが違います"
+        flash("メールまたはパスワードが違います。")
 
     return render_template("login.html")
 
 
 @app.route("/logout")
+@login_required
 def logout():
-    session.clear()
-    return redirect("/login")
+    logout_user()
+    return redirect(url_for("login"))
 
 
-@app.route("/admin")
-def admin():
-    if session.get("role") != "admin":
-        return redirect("/login")
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    users = User.query.filter_by(is_active_user=True).all()
 
-    conn = get_db()
+    if current_user.role == "admin":
+        plans = CollectionPlan.query.all()
+        loans = Loan.query.all()
+        transactions = Transaction.query.order_by(Transaction.id.desc()).limit(20).all()
+    else:
+        plans = CollectionPlan.query.filter_by(user_id=current_user.id).all()
+        loans = Loan.query.filter_by(borrower_id=current_user.id).all()
+        transactions = []
 
-    users = conn.execute("SELECT * FROM users").fetchall()
+    total_collections = sum(
+        p.paid_amount for p in CollectionPayment.query.all()
+    )
 
-    payments = conn.execute("""
-        SELECT payments.*, users.name
-        FROM payments
-        JOIN users ON payments.user_id = users.id
-        ORDER BY payments.year DESC, payments.month DESC
-    """).fetchall()
+    total_loan_disbursement = sum(l.amount for l in Loan.query.all())
+    total_loan_repayment = sum(r.amount for r in LoanRepayment.query.all())
 
-    loans = conn.execute("""
-        SELECT loans.*, users.name,
-        loan_amount - paid_amount AS remaining
-        FROM loans
-        JOIN users ON loans.user_id = users.id
-    """).fetchall()
-
-    conn.close()
+    cash_in_hand = total_collections + total_loan_repayment - total_loan_disbursement
 
     return render_template(
-        "admin.html",
+        "dashboard.html",
         users=users,
-        payments=payments,
-        loans=loans
+        plans=plans,
+        loans=loans,
+        transactions=transactions,
+        cash_in_hand=cash_in_hand,
+        total_collections=total_collections,
+        total_loan_disbursement=total_loan_disbursement,
+        total_loan_repayment=total_loan_repayment,
     )
 
 
-@app.route("/user")
-def user_page():
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_db()
-
-    payments = conn.execute("""
-        SELECT * FROM payments
-        WHERE user_id=?
-        ORDER BY year DESC, month DESC
-    """, (session["user_id"],)).fetchall()
-
-    loans = conn.execute("""
-        SELECT *, loan_amount - paid_amount AS remaining
-        FROM loans
-        WHERE user_id=?
-    """, (session["user_id"],)).fetchall()
-
-    conn.close()
-
-    return render_template(
-        "user.html",
-        payments=payments,
-        loans=loans
-    )
-
-
-@app.route("/add_user", methods=["POST"])
+@app.route("/users/add", methods=["POST"])
+@login_required
+@admin_required
 def add_user():
-    if session.get("role") != "admin":
-        return redirect("/login")
-
-    conn = get_db()
-    conn.execute("""
-    INSERT INTO users (name, email, password, role)
-    VALUES (?, ?, ?, ?)
-    """, (
-        request.form["name"],
-        request.form["email"],
-        generate_password_hash(request.form["password"]),
-        request.form["role"]
-    ))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/admin")
+    user = User(
+        name=request.form["name"],
+        email=request.form["email"],
+        role=request.form["role"]
+    )
+    user.set_password(request.form["password"])
+    db.session.add(user)
+    db.session.commit()
+    flash("ユーザーを追加しました。")
+    return redirect(url_for("dashboard"))
 
 
-@app.route("/add_payment", methods=["POST"])
-def add_payment():
-    if session.get("role") != "admin":
-        return redirect("/login")
-
-    conn = get_db()
-    conn.execute("""
-    INSERT INTO payments (user_id, year, month, amount, type, note)
-    VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        request.form["user_id"],
-        request.form["year"],
-        request.form["month"],
-        request.form["amount"],
-        request.form["type"],
-        request.form["note"]
-    ))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/admin")
+@app.route("/collection-plan/add", methods=["POST"])
+@login_required
+@admin_required
+def add_collection_plan():
+    plan = CollectionPlan(
+        user_id=request.form["user_id"],
+        year=int(request.form["year"]),
+        month=int(request.form["month"]),
+        expected_amount=int(request.form["expected_amount"])
+    )
+    db.session.add(plan)
+    db.session.commit()
+    flash("集金予定を追加しました。")
+    return redirect(url_for("dashboard"))
 
 
-@app.route("/add_loan", methods=["POST"])
+@app.route("/collection-payment/add", methods=["POST"])
+@login_required
+@admin_required
+def add_collection_payment():
+    plan = CollectionPlan.query.get_or_404(int(request.form["plan_id"]))
+
+    payment = CollectionPayment(
+        plan_id=plan.id,
+        paid_amount=int(request.form["paid_amount"]),
+        paid_date=datetime.strptime(request.form["paid_date"], "%Y-%m-%d").date(),
+        note=request.form.get("note")
+    )
+
+    db.session.add(payment)
+    create_transaction(
+        "collection_payment",
+        payment.paid_amount,
+        f"{plan.user.name} collection payment"
+    )
+    db.session.commit()
+
+    flash("支払いを登録しました。")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/loan/add", methods=["POST"])
+@login_required
+@admin_required
 def add_loan():
-    if session.get("role") != "admin":
-        return redirect("/login")
+    loan = Loan(
+        borrower_id=request.form["borrower_id"],
+        loan_date=datetime.strptime(request.form["loan_date"], "%Y-%m-%d").date(),
+        amount=int(request.form["amount"]),
+        note=request.form.get("note")
+    )
 
-    conn = get_db()
-    conn.execute("""
-    INSERT INTO loans (user_id, loan_amount, paid_amount)
-    VALUES (?, ?, ?)
-    """, (
-        request.form["user_id"],
-        request.form["loan_amount"],
-        request.form["paid_amount"]
-    ))
+    db.session.add(loan)
+    create_transaction(
+        "loan_disbursement",
+        -loan.amount,
+        "Loan disbursement"
+    )
+    db.session.commit()
 
-    conn.commit()
-    conn.close()
-
-    return redirect("/admin")
+    flash("Loanを登録しました。")
+    return redirect(url_for("dashboard"))
 
 
-init_db()
+@app.route("/loan-repayment/add", methods=["POST"])
+@login_required
+@admin_required
+def add_loan_repayment():
+    loan = Loan.query.get_or_404(int(request.form["loan_id"]))
+
+    repayment = LoanRepayment(
+        loan_id=loan.id,
+        repayment_date=datetime.strptime(request.form["repayment_date"], "%Y-%m-%d").date(),
+        amount=int(request.form["amount"]),
+        note=request.form.get("note")
+    )
+
+    db.session.add(repayment)
+    create_transaction(
+        "loan_repayment",
+        repayment.amount,
+        f"Loan repayment from {loan.borrower.name}"
+    )
+    db.session.commit()
+
+    flash("Loan返済を登録しました。")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/setup-db")
+def setup_db():
+    db.create_all()
+    return "Database created."
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=81)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
