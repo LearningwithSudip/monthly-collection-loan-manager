@@ -1,120 +1,505 @@
 {% extends "base.html" %}
 
+
+{% block title %}
+{{ user.name }} | User History
+{% endblock %}
+
+
 {% block content %}
 
+
 <div class="page-head">
+
+
     <div>
-        <h2>{{ user.name }} の履歴</h2>
-        <p>Monthly Collection / Loan / Repayment</p>
+
+        <h2>
+            {{ user.name }}
+        </h2>
+
+        <p>
+            Collection・Loan・Repayment History
+        </p>
+
     </div>
 
-    <a href="{{ url_for('dashboard') }}" class="btn btn-dark">
-        Dashboardへ戻る
+
+    <a
+        href="{{ url_for('dashboard.dashboard') }}"
+        class="btn btn-dark"
+    >
+        Back
     </a>
+
+
 </div>
 
+
+
+<section class="stats-grid history-stats">
+
+
+    <article class="stat-card success">
+
+        <span>
+            Collection Plans
+        </span>
+
+        <strong>
+            {{ collection_plans | length }}
+        </strong>
+
+        <small>
+            Registered collection months
+        </small>
+
+    </article>
+
+
+
+    <article class="stat-card warning">
+
+        <span>
+            Loans
+        </span>
+
+        <strong>
+            {{ loans | length }}
+        </strong>
+
+        <small>
+            Total loan records
+        </small>
+
+    </article>
+
+
+</section>
+
+
+
 <section class="panel">
+
+
     <div class="section-title">
-        <h3>Monthly Collection History</h3>
-        <p>集金予定・支払い履歴</p>
+
+        <div>
+
+            <h2>
+                Monthly Collection History
+            </h2>
+
+            <p>
+                Payment status and payment records
+            </p>
+
+        </div>
+
     </div>
 
-    <div class="table-wrap">
-        <table class="modern-table">
-            <tr>
-                <th>Year</th>
-                <th>Month</th>
-                <th>Expected</th>
-                <th>Paid</th>
-                <th>Status</th>
-                <th>Payment Date</th>
-                <th>Note</th>
-            </tr>
 
-            {% for plan in collection_plans %}
-                {% set total_paid = plan.payments | sum(attribute='paid_amount') %}
 
-                {% if plan.payments | length == 0 %}
+    <div class="table-scroll">
+
+
+        <table class="app-table">
+
+
+            <thead>
+
                 <tr>
-                    <td>{{ plan.year }}</td>
-                    <td>{{ plan.month }}</td>
-                    <td>¥{{ plan.expected_amount | money }}</td>
-                    <td>¥0</td>
-                    <td><span class="status danger">未払い</span></td>
-                    <td>-</td>
-                    <td>-</td>
+
+                    <th>Year</th>
+
+                    <th>Month</th>
+
+                    <th>Expected</th>
+
+                    <th>Total Paid</th>
+
+                    <th>Status</th>
+
+                    <th>Payment Date</th>
+
+                    <th>Payment Amount</th>
+
+                    <th>Note</th>
+
                 </tr>
+
+            </thead>
+
+
+
+            <tbody>
+
+
+                {% for plan in collection_plans %}
+
+
+                    {% set total_paid = plan.payments | sum(attribute='paid_amount') %}
+
+
+                    {% if plan.payments | length == 0 %}
+
+
+                    <tr>
+
+                        <td>{{ plan.year }}</td>
+
+                        <td>{{ plan.month }}</td>
+
+                        <td>
+                            ¥{{ plan.expected_amount | money }}
+                        </td>
+
+                        <td>
+                            ¥0
+                        </td>
+
+                        <td>
+
+                            <span class="status danger">
+                                Unpaid
+                            </span>
+
+                        </td>
+
+                        <td>—</td>
+
+                        <td>—</td>
+
+                        <td>—</td>
+
+                    </tr>
+
+
+                    {% else %}
+
+
+                        {% for payment in plan.payments %}
+
+
+                        <tr>
+
+
+                            <td>
+                                {{ plan.year }}
+                            </td>
+
+
+                            <td>
+                                {{ plan.month }}
+                            </td>
+
+
+                            <td>
+                                ¥{{ plan.expected_amount | money }}
+                            </td>
+
+
+                            <td>
+                                ¥{{ total_paid | money }}
+                            </td>
+
+
+                            <td>
+
+
+                                {% if total_paid < plan.expected_amount %}
+
+                                    <span class="status warning">
+                                        Partial
+                                    </span>
+
+
+                                {% elif total_paid == plan.expected_amount %}
+
+                                    <span class="status success">
+                                        Paid
+                                    </span>
+
+
+                                {% else %}
+
+                                    <span class="status info">
+                                        Overpaid
+                                    </span>
+
+
+                                {% endif %}
+
+
+                            </td>
+
+
+                            <td>
+                                {{ payment.paid_date }}
+                            </td>
+
+
+                            <td>
+                                ¥{{ payment.paid_amount | money }}
+                            </td>
+
+
+                            <td>
+                                {{ payment.note or "—" }}
+                            </td>
+
+
+                        </tr>
+
+
+                        {% endfor %}
+
+
+                    {% endif %}
+
+
+                {% else %}
+
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="empty-table"
+                        >
+                            No collection history.
+                        </td>
+
+                    </tr>
+
+
+                {% endfor %}
+
+
+            </tbody>
+
+
+        </table>
+
+
+    </div>
+
+
+</section>
+
+
+
+<section class="panel">
+
+
+    <div class="section-title">
+
+        <div>
+
+            <h2>
+                Loan History
+            </h2>
+
+            <p>
+                Loan and repayment records
+            </p>
+
+        </div>
+
+    </div>
+
+
+
+    {% for loan in loans %}
+
+
+        {% set repaid = loan_repaid(loan) %}
+
+        {% set remaining = loan.amount - repaid %}
+
+
+        <article class="loan-history-card">
+
+
+            <div class="loan-history-head">
+
+
+                <div>
+
+                    <small>
+                        Loan Date
+                    </small>
+
+                    <strong>
+                        {{ loan.loan_date }}
+                    </strong>
+
+                </div>
+
+
+                {% if remaining <= 0 %}
+
+                    <span class="status success">
+                        Closed
+                    </span>
+
+                {% else %}
+
+                    <span class="status warning">
+                        Active
+                    </span>
+
                 {% endif %}
 
-                {% for payment in plan.payments %}
-                <tr>
-                    <td>{{ plan.year }}</td>
-                    <td>{{ plan.month }}</td>
-                    <td>¥{{ plan.expected_amount | money }}</td>
-                    <td>¥{{ payment.paid_amount | money }}</td>
-                    <td>
-                        {% if total_paid < plan.expected_amount %}
-                        <span class="status warning">一部</span>
-                        {% elif total_paid == plan.expected_amount %}
-                        <span class="status success">済</span>
+
+            </div>
+
+
+
+            <div class="loan-history-values">
+
+
+                <div>
+
+                    <span>
+                        Loan Amount
+                    </span>
+
+                    <strong>
+                        ¥{{ loan.amount | money }}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Repaid
+                    </span>
+
+                    <strong>
+                        ¥{{ repaid | money }}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Remaining
+                    </span>
+
+                    <strong>
+                        ¥{{ remaining | money }}
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            {% if loan.note %}
+
+            <div class="loan-note">
+                {{ loan.note }}
+            </div>
+
+            {% endif %}
+
+
+
+            <div class="table-scroll repayment-table">
+
+
+                <table class="app-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Repayment Date</th>
+
+                            <th>Amount</th>
+
+                            <th>Note</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+
+                        {% for repayment in loan.repayments %}
+
+
+                        <tr>
+
+                            <td>
+                                {{ repayment.repayment_date }}
+                            </td>
+
+                            <td>
+                                ¥{{ repayment.amount | money }}
+                            </td>
+
+                            <td>
+                                {{ repayment.note or "—" }}
+                            </td>
+
+                        </tr>
+
+
                         {% else %}
-                        <span class="status info">過払い</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ payment.paid_date }}</td>
-                    <td>{{ payment.note }}</td>
-                </tr>
-                {% endfor %}
-            {% endfor %}
-        </table>
-    </div>
+
+
+                        <tr>
+
+                            <td
+                                colspan="3"
+                                class="empty-table"
+                            >
+                                No repayments.
+                            </td>
+
+                        </tr>
+
+
+                        {% endfor %}
+
+
+                    </tbody>
+
+
+                </table>
+
+
+            </div>
+
+
+        </article>
+
+
+    {% else %}
+
+
+        <div class="empty-state">
+
+            No loan history.
+
+        </div>
+
+
+    {% endfor %}
+
+
 </section>
 
-<section class="panel">
-    <div class="section-title">
-        <h3>Loan History</h3>
-        <p>Loanと返済履歴</p>
-    </div>
-
-    <div class="table-wrap">
-        <table class="modern-table">
-            <tr>
-                <th>Loan Date</th>
-                <th>Loan Amount</th>
-                <th>Total Repaid</th>
-                <th>Remaining</th>
-                <th>Status</th>
-                <th>Note</th>
-            </tr>
-
-            {% for loan in loans %}
-                {% set repaid = loan_repaid(loan) %}
-                {% set remaining = loan.amount - repaid %}
-                <tr>
-                    <td>{{ loan.loan_date }}</td>
-                    <td>¥{{ loan.amount | money }}</td>
-                    <td>¥{{ repaid | money }}</td>
-                    <td>¥{{ remaining | money }}</td>
-                    <td>
-                        {% if remaining <= 0 %}
-                        <span class="status success">完済</span>
-                        {% else %}
-                        <span class="status warning">返済中</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ loan.note }}</td>
-                </tr>
-
-                {% for repayment in loan.repayments %}
-                <tr class="sub-row">
-                    <td colspan="2">返済日：{{ repayment.repayment_date }}</td>
-                    <td>返済額：¥{{ repayment.amount | money }}</td>
-                    <td colspan="3">{{ repayment.note }}</td>
-                </tr>
-                {% endfor %}
-            {% endfor %}
-        </table>
-    </div>
-</section>
 
 {% endblock %}
