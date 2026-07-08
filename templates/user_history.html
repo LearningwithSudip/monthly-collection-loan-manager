@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 
-
 {% block title %}
 {{ user.name }} | User History
 {% endblock %}
@@ -8,12 +7,9 @@
 
 {% block content %}
 
-
 <div class="page-head">
 
-
     <div>
-
         <h2>
             {{ user.name }}
         </h2>
@@ -21,7 +17,6 @@
         <p>
             Collection・Loan・Repayment History
         </p>
-
     </div>
 
 
@@ -32,13 +27,10 @@
         Back
     </a>
 
-
 </div>
 
 
-
 <section class="stats-grid history-stats">
-
 
     <article class="stat-card success">
 
@@ -57,7 +49,6 @@
     </article>
 
 
-
     <article class="stat-card warning">
 
         <span>
@@ -74,18 +65,14 @@
 
     </article>
 
-
 </section>
-
 
 
 <section class="panel">
 
-
     <div class="section-title">
 
         <div>
-
             <h2>
                 Monthly Collection History
             </h2>
@@ -93,62 +80,48 @@
             <p>
                 Payment status and payment records
             </p>
-
         </div>
 
     </div>
 
 
-
     <div class="table-scroll">
 
-
         <table class="app-table">
-
 
             <thead>
 
                 <tr>
-
                     <th>Year</th>
-
                     <th>Month</th>
-
                     <th>Expected</th>
-
                     <th>Total Paid</th>
-
                     <th>Status</th>
-
                     <th>Payment Date</th>
-
                     <th>Payment Amount</th>
-
                     <th>Note</th>
-
                 </tr>
 
             </thead>
 
 
-
             <tbody>
-
 
                 {% for plan in collection_plans %}
 
-
                     {% set total_paid = plan.payments | sum(attribute='paid_amount') %}
-
 
                     {% if plan.payments | length == 0 %}
 
-
                     <tr>
 
-                        <td>{{ plan.year }}</td>
+                        <td>
+                            {{ plan.year }}
+                        </td>
 
-                        <td>{{ plan.month }}</td>
+                        <td>
+                            {{ plan.month }}
+                        </td>
 
                         <td>
                             ¥{{ plan.expected_amount | money }}
@@ -159,11 +132,9 @@
                         </td>
 
                         <td>
-
                             <span class="status danger">
                                 Unpaid
                             </span>
-
                         </td>
 
                         <td>—</td>
@@ -174,38 +145,29 @@
 
                     </tr>
 
-
                     {% else %}
-
 
                         {% for payment in plan.payments %}
 
-
                         <tr>
-
 
                             <td>
                                 {{ plan.year }}
                             </td>
 
-
                             <td>
                                 {{ plan.month }}
                             </td>
-
 
                             <td>
                                 ¥{{ plan.expected_amount | money }}
                             </td>
 
-
                             <td>
                                 ¥{{ total_paid | money }}
                             </td>
 
-
                             <td>
-
 
                                 {% if total_paid < plan.expected_amount %}
 
@@ -213,13 +175,11 @@
                                         Partial
                                     </span>
 
-
                                 {% elif total_paid == plan.expected_amount %}
 
                                     <span class="status success">
                                         Paid
                                     </span>
-
 
                                 {% else %}
 
@@ -227,39 +187,29 @@
                                         Overpaid
                                     </span>
 
-
                                 {% endif %}
 
-
                             </td>
-
 
                             <td>
                                 {{ payment.paid_date }}
                             </td>
 
-
                             <td>
                                 ¥{{ payment.paid_amount | money }}
                             </td>
-
 
                             <td>
                                 {{ payment.note or "—" }}
                             </td>
 
-
                         </tr>
-
 
                         {% endfor %}
 
-
                     {% endif %}
 
-
                 {% else %}
-
 
                     <tr>
 
@@ -272,30 +222,22 @@
 
                     </tr>
 
-
                 {% endfor %}
-
 
             </tbody>
 
-
         </table>
 
-
     </div>
-
 
 </section>
 
 
-
 <section class="panel">
-
 
     <div class="section-title">
 
         <div>
-
             <h2>
                 Loan History
             </h2>
@@ -303,26 +245,19 @@
             <p>
                 Loan and repayment records
             </p>
-
         </div>
 
     </div>
 
 
-
     {% for loan in loans %}
 
-
         {% set repaid = loan_repaid(loan) %}
-
         {% set remaining = loan.amount - repaid %}
-
 
         <article class="loan-history-card">
 
-
             <div class="loan-history-head">
-
 
                 <div>
 
@@ -351,13 +286,10 @@
 
                 {% endif %}
 
-
             </div>
 
 
-
             <div class="loan-history-values">
-
 
                 <div>
 
@@ -397,9 +329,7 @@
 
                 </div>
 
-
             </div>
-
 
 
             {% if loan.note %}
@@ -411,23 +341,16 @@
             {% endif %}
 
 
-
             <div class="table-scroll repayment-table">
 
-
                 <table class="app-table">
-
 
                     <thead>
 
                         <tr>
-
                             <th>Repayment Date</th>
-
                             <th>Amount</th>
-
                             <th>Note</th>
-
                         </tr>
 
                     </thead>
@@ -435,9 +358,7 @@
 
                     <tbody>
 
-
                         {% for repayment in loan.repayments %}
-
 
                         <tr>
 
@@ -455,9 +376,7 @@
 
                         </tr>
 
-
                         {% else %}
-
 
                         <tr>
 
@@ -470,36 +389,24 @@
 
                         </tr>
 
-
                         {% endfor %}
-
 
                     </tbody>
 
-
                 </table>
-
 
             </div>
 
-
         </article>
-
 
     {% else %}
 
-
         <div class="empty-state">
-
             No loan history.
-
         </div>
-
 
     {% endfor %}
 
-
 </section>
-
 
 {% endblock %}
