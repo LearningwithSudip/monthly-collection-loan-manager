@@ -7,11 +7,9 @@ Dashboard | Monthly Collection & Loan Manager
 
 {% block content %}
 
-
 <div class="page-head">
 
     <div>
-
         <h2>Dashboard</h2>
 
         <p>
@@ -23,17 +21,17 @@ Dashboard | Monthly Collection & Loan Manager
                 General User
             {% endif %}
         </p>
-
     </div>
 
 
     <form method="GET" class="year-form">
 
-        <label>
+        <label for="year">
             Year
         </label>
 
         <input
+            id="year"
             type="number"
             name="year"
             value="{{ year }}"
@@ -46,9 +44,7 @@ Dashboard | Monthly Collection & Loan Manager
 </div>
 
 
-
 <section class="stats-grid">
-
 
     <article class="stat-card primary">
 
@@ -63,7 +59,6 @@ Dashboard | Monthly Collection & Loan Manager
         </small>
 
     </article>
-
 
 
     <article class="stat-card success">
@@ -81,7 +76,6 @@ Dashboard | Monthly Collection & Loan Manager
     </article>
 
 
-
     <article class="stat-card danger">
 
         <span>Unpaid Collections</span>
@@ -95,7 +89,6 @@ Dashboard | Monthly Collection & Loan Manager
         </small>
 
     </article>
-
 
 
     <article class="stat-card warning">
@@ -112,13 +105,10 @@ Dashboard | Monthly Collection & Loan Manager
 
     </article>
 
-
 </section>
 
 
-
 {% if current_user.role == "admin" %}
-
 
 <section class="panel admin-panel">
 
@@ -128,16 +118,15 @@ Dashboard | Monthly Collection & Loan Manager
         data-bs-toggle="collapse"
         data-bs-target="#adminForms"
         aria-expanded="false"
+        aria-controls="adminForms"
     >
 
         <span>
-
             <strong>Admin Registration</strong>
 
             <small>
                 Users・Collections・Loans・Cash
             </small>
-
         </span>
 
         <span class="toggle-symbol">
@@ -147,12 +136,10 @@ Dashboard | Monthly Collection & Loan Manager
     </button>
 
 
-
     <div
         id="adminForms"
         class="collapse"
     >
-
 
         <div class="form-grid">
 
@@ -173,7 +160,6 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <input
                         name="email"
                         type="email"
@@ -181,7 +167,6 @@ Dashboard | Monthly Collection & Loan Manager
                         placeholder="Email"
                         required
                     >
-
 
                     <input
                         name="password"
@@ -191,12 +176,10 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <select
                         name="role"
                         class="form-select"
                     >
-
                         <option value="user">
                             General User
                         </option>
@@ -204,18 +187,18 @@ Dashboard | Monthly Collection & Loan Manager
                         <option value="admin">
                             Admin
                         </option>
-
                     </select>
 
-
-                    <button class="btn btn-dark">
+                    <button
+                        type="submit"
+                        class="btn btn-dark"
+                    >
                         Add User
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -278,14 +261,16 @@ Dashboard | Monthly Collection & Loan Manager
                     >
 
 
-                    <button class="btn btn-success">
+                    <button
+                        type="submit"
+                        class="btn btn-success"
+                    >
                         Add Plan
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -306,13 +291,9 @@ Dashboard | Monthly Collection & Loan Manager
                         {% for plan in plans %}
 
                         <option value="{{ plan.id }}">
-
                             {{ plan.user.name }}
-                            ·
-                            {{ plan.year }}/{{ plan.month }}
-                            ·
-                            ¥{{ plan.expected_amount | money }}
-
+                            · {{ plan.year }}/{{ plan.month }}
+                            · ¥{{ plan.expected_amount | money }}
                         </option>
 
                         {% endfor %}
@@ -345,14 +326,16 @@ Dashboard | Monthly Collection & Loan Manager
                     >
 
 
-                    <button class="btn btn-success">
+                    <button
+                        type="submit"
+                        class="btn btn-success"
+                    >
                         Register Payment
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -410,14 +393,16 @@ Dashboard | Monthly Collection & Loan Manager
                     >
 
 
-                    <button class="btn btn-warning">
+                    <button
+                        type="submit"
+                        class="btn btn-warning"
+                    >
                         Add Loan
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -440,13 +425,9 @@ Dashboard | Monthly Collection & Loan Manager
                             {% if loan.amount - loan_repaid(loan) > 0 %}
 
                             <option value="{{ loan.id }}">
-
                                 {{ loan.borrower.name }}
-
                                 · Remaining
-
                                 ¥{{ (loan.amount - loan_repaid(loan)) | money }}
-
                             </option>
 
                             {% endif %}
@@ -481,14 +462,16 @@ Dashboard | Monthly Collection & Loan Manager
                     >
 
 
-                    <button class="btn btn-warning">
+                    <button
+                        type="submit"
+                        class="btn btn-warning"
+                    >
                         Register Repayment
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -507,7 +490,6 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <input
                         name="amount"
                         type="number"
@@ -517,22 +499,22 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <input
                         name="note"
                         class="form-control"
                         placeholder="Note"
                     >
 
-
-                    <button class="btn btn-danger">
+                    <button
+                        type="submit"
+                        class="btn btn-danger"
+                    >
                         Add Expense
                     </button>
 
                 </form>
 
             </article>
-
 
 
             <article class="form-card">
@@ -551,7 +533,6 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <input
                         name="amount"
                         type="number"
@@ -561,15 +542,16 @@ Dashboard | Monthly Collection & Loan Manager
                         required
                     >
 
-
                     <input
                         name="note"
                         class="form-control"
                         placeholder="Note"
                     >
 
-
-                    <button class="btn btn-secondary">
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                    >
                         Add Income
                     </button>
 
@@ -577,16 +559,13 @@ Dashboard | Monthly Collection & Loan Manager
 
             </article>
 
-
         </div>
 
     </div>
 
 </section>
 
-
 {% endif %}
-
 
 
 <section
@@ -594,27 +573,22 @@ Dashboard | Monthly Collection & Loan Manager
     class="panel"
 >
 
-
     <div class="section-title">
 
         <div>
-
             <h2>Annual Monthly Collection</h2>
 
             <p>
                 {{ year }} collection status
             </p>
-
         </div>
 
     </div>
 
 
-
     <div class="table-scroll">
 
         <table class="app-table collection-table">
-
 
             <thead>
 
@@ -641,15 +615,11 @@ Dashboard | Monthly Collection & Loan Manager
             </thead>
 
 
-
             <tbody>
-
 
                 {% for row in collection_matrix %}
 
-
                 <tr>
-
 
                     <td class="sticky-column user-cell">
 
@@ -662,15 +632,11 @@ Dashboard | Monthly Collection & Loan Manager
                     </td>
 
 
-
                     {% for month in months %}
-
 
                         {% set cell = row.months[month] %}
 
-
                         <td class="collection-cell">
-
 
                             {% if cell.status == "none" %}
 
@@ -724,15 +690,11 @@ Dashboard | Monthly Collection & Loan Manager
                                     ¥{{ cell.paid | money }}
                                 </small>
 
-
                             {% endif %}
-
 
                         </td>
 
-
                     {% endfor %}
-
 
 
                     <td class="total-cell">
@@ -747,15 +709,24 @@ Dashboard | Monthly Collection & Loan Manager
 
                     </td>
 
+                </tr>
+
+                {% else %}
+
+                <tr>
+
+                    <td
+                        colspan="14"
+                        class="empty-table"
+                    >
+                        No collection data.
+                    </td>
 
                 </tr>
 
-
                 {% endfor %}
 
-
             </tbody>
-
 
         </table>
 
@@ -764,48 +735,36 @@ Dashboard | Monthly Collection & Loan Manager
 </section>
 
 
-
 <section
     id="loans"
     class="panel"
 >
 
-
     <div class="section-title">
 
         <div>
-
             <h2>Loan Summary</h2>
 
             <p>
                 Loan balance by member
             </p>
-
         </div>
 
     </div>
-
 
 
     <div class="table-scroll">
 
         <table class="app-table">
 
-
             <thead>
 
                 <tr>
-
                     <th>Name</th>
-
                     <th>Total Loan</th>
-
                     <th>Total Repaid</th>
-
                     <th>Remaining</th>
-
                     <th>Status</th>
-
                 </tr>
 
             </thead>
@@ -813,9 +772,7 @@ Dashboard | Monthly Collection & Loan Manager
 
             <tbody>
 
-
                 {% for row in loan_summary %}
-
 
                 <tr>
 
@@ -829,21 +786,17 @@ Dashboard | Monthly Collection & Loan Manager
 
                     </td>
 
-
                     <td>
                         ¥{{ row.total_loan | money }}
                     </td>
-
 
                     <td>
                         ¥{{ row.total_repaid | money }}
                     </td>
 
-
                     <td class="amount-strong">
                         ¥{{ row.total_remaining | money }}
                     </td>
-
 
                     <td>
 
@@ -865,9 +818,7 @@ Dashboard | Monthly Collection & Loan Manager
 
                 </tr>
 
-
                 {% else %}
-
 
                 <tr>
 
@@ -880,12 +831,9 @@ Dashboard | Monthly Collection & Loan Manager
 
                 </tr>
 
-
                 {% endfor %}
 
-
             </tbody>
-
 
         </table>
 
@@ -894,47 +842,34 @@ Dashboard | Monthly Collection & Loan Manager
 </section>
 
 
-
 <section class="panel">
-
 
     <div class="section-title">
 
         <div>
-
             <h2>Loan Details</h2>
 
             <p>
                 Individual loan records
             </p>
-
         </div>
 
     </div>
-
 
 
     <div class="table-scroll">
 
         <table class="app-table">
 
-
             <thead>
 
                 <tr>
-
                     <th>Borrower</th>
-
                     <th>Date</th>
-
                     <th>Loan</th>
-
                     <th>Repaid</th>
-
                     <th>Remaining</th>
-
                     <th>Status</th>
-
                 </tr>
 
             </thead>
@@ -942,42 +877,32 @@ Dashboard | Monthly Collection & Loan Manager
 
             <tbody>
 
-
                 {% for loan in loans %}
 
-
                     {% set repaid = loan_repaid(loan) %}
-
                     {% set remaining = loan.amount - repaid %}
 
-
                     <tr>
-
 
                         <td>
                             {{ loan.borrower.name }}
                         </td>
 
-
                         <td>
                             {{ loan.loan_date }}
                         </td>
-
 
                         <td>
                             ¥{{ loan.amount | money }}
                         </td>
 
-
                         <td>
                             ¥{{ repaid | money }}
                         </td>
 
-
                         <td class="amount-strong">
                             ¥{{ remaining | money }}
                         </td>
-
 
                         <td>
 
@@ -997,12 +922,9 @@ Dashboard | Monthly Collection & Loan Manager
 
                         </td>
 
-
                     </tr>
 
-
                 {% else %}
-
 
                     <tr>
 
@@ -1015,12 +937,9 @@ Dashboard | Monthly Collection & Loan Manager
 
                     </tr>
 
-
                 {% endfor %}
 
-
             </tbody>
-
 
         </table>
 
@@ -1029,49 +948,37 @@ Dashboard | Monthly Collection & Loan Manager
 </section>
 
 
-
 {% if current_user.role == "admin" %}
-
 
 <section
     id="transactions"
     class="panel"
 >
 
-
     <div class="section-title">
 
         <div>
-
             <h2>Transaction Ledger</h2>
 
             <p>
                 Recent financial transactions
             </p>
-
         </div>
 
     </div>
-
 
 
     <div class="table-scroll">
 
         <table class="app-table">
 
-
             <thead>
 
                 <tr>
-
                     <th>Date</th>
-
                     <th>Type</th>
-
                     <th>Amount</th>
-
                     <th>Note</th>
-
                 </tr>
 
             </thead>
@@ -1079,9 +986,7 @@ Dashboard | Monthly Collection & Loan Manager
 
             <tbody>
 
-
                 {% for transaction in transactions %}
-
 
                 <tr>
 
@@ -1089,18 +994,13 @@ Dashboard | Monthly Collection & Loan Manager
                         {{ transaction.tx_date }}
                     </td>
 
-
                     <td>
                         {{ transaction.tx_type }}
                     </td>
 
-
-                    <td
-                        class="{% if transaction.amount < 0 %}negative-amount{% else %}positive-amount{% endif %}"
-                    >
+                    <td class="{% if transaction.amount < 0 %}negative-amount{% else %}positive-amount{% endif %}">
                         ¥{{ transaction.amount | money }}
                     </td>
-
 
                     <td>
                         {{ transaction.note or "—" }}
@@ -1108,9 +1008,7 @@ Dashboard | Monthly Collection & Loan Manager
 
                 </tr>
 
-
                 {% else %}
-
 
                 <tr>
 
@@ -1123,12 +1021,9 @@ Dashboard | Monthly Collection & Loan Manager
 
                 </tr>
 
-
                 {% endfor %}
 
-
             </tbody>
-
 
         </table>
 
@@ -1136,8 +1031,6 @@ Dashboard | Monthly Collection & Loan Manager
 
 </section>
 
-
 {% endif %}
-
 
 {% endblock %}
