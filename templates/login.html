@@ -1,31 +1,92 @@
 {% extends "base.html" %}
 
+{% block title %}
+Login | Monthly Collection & Loan Manager
+{% endblock %}
+
+
 {% block content %}
 
-<div class="login-wrap">
+<div class="login-page">
+
     <div class="login-card">
-        <div class="login-logo">M</div>
 
-        <h2>Welcome Back</h2>
-        <p>Monthly Collection & Loan Manager</p>
+        <div class="login-brand">
 
-        <form method="POST">
-            <label>Email</label>
-            <input type="email" name="email" class="form-control" required>
+            <div class="login-logo">
+                M
+            </div>
 
-            <label>Password</label>
-            <input type="password" name="password" class="form-control" required>
+            <div>
+                <h1>Money Manager</h1>
+                <p>Monthly Collection & Loan</p>
+            </div>
 
-            <button type="submit" class="btn btn-dark w-100 mt-3">
+        </div>
+
+
+        <div class="login-heading">
+
+            <h2>Welcome Back</h2>
+
+            <p>
+                Sign in to continue to your account.
+            </p>
+
+        </div>
+
+
+        <form method="POST" class="login-form">
+
+            <div>
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    class="form-control"
+                    placeholder="Enter your email"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <div>
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    id="password"
+                    type="password"
+                    name="password"
+                    class="form-control"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-dark login-button"
+            >
                 Login
             </button>
+
         </form>
 
-        <div class="demo-info">
-            <div>Email: admin@test.com</div>
-            <div>Password: admin123</div>
-        </div>
     </div>
+
 </div>
 
 {% endblock %}
